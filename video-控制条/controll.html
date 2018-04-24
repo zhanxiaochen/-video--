@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<style>
+		.box{
+			width: 600px;
+			height: 350px;
+            margin: auto;
+            border: 1px solid #000;
+            position: relative;
+            overflow: hidden;
+		}
+        .control{
+            width: 100%;
+            height: 40px;
+            background: rgba(255,255,255,.8);
+            position: absolute;
+            bottom:0;
+            left: 0;
+            z-index: 10;
+        }
+        .control-img,.control-big{
+            height: 40px;
+            width: 48px;
+        }
+        .control-img>img,.control-big>img{
+            width: 17px;
+            height: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            margin-left: 14px;
+            outline: 0;
+            cursor: pointer;
+        }
+        .control-img{
+            float: left;
+        }
+        .control-big{
+            float: right;
+        }
+        .control .time{
+            position: relative;
+            float:left;
+            font-size: 14px;
+            color:#646464;
+            line-height: 40px;
+        }
+        .process{
+            position: absolute;
+            bottom: 40px;
+            display: block;
+            height: 4px;
+            width: 100%;
+            background-color: #646464;
+        }
+        .process>span{
+            width: 100%;
+            height: 4px;
+            overflow: hidden;
+        }
+        .process>span>b:nth-child(1){
+            width: 12px;
+            height: 4px;
+            background: #2E93FA;
+            float: left;
+        }
+        .process-play{
+            float:left;
+            width: 0%;
+            background-color: #2E93FA;
+            display: block;
+            height: 100%;
+            border-radius: 4px
+        }
+        /*.process-seek{
+            z-index:22;
+            left: 0;
+            float: left;
+            width: 12px;
+            height: 12px;
+            margin-left: -12px;
+            margin-top: -4px;
+            background-color: #2E93FA;
+            border-radius: 12px;
+        }*/
+
+        .control-volume{
+            float: right;
+            width: 130px;
+            height: 40px;
+            line-height: 40px;
+        }
+        .control-volume>img{
+            width: 26px;
+            height: 26px;
+            margin-top: 7px;
+            float: left;
+        }
+        .volume-track{
+            float: left;
+            margin-top: 18px;
+            margin-left: 20px;
+            position: relative;
+            width: 80px;
+            height: 3px;
+            background-color: #646464;
+        }
+        .volume-play{
+            width: 100%;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            top: 0;
+            height: 3px;
+            background: #2E93FA;
+        }
+        .volume-seek{
+            position: absolute;
+            top: -4px;
+            left: 100%;
+            width: 10px;
+            height: 10px;
+            margin-left: -10px;
+            border-radius: 50%;
+            background-color: #2E93FA;
+        }
+        /*全屏时去掉自带控制条*/
+        .full-video::-webkit-media-controls-enclosure {
+            display:none !important;
+        }
+	</style>
+
+</head>
+<body>
+	<div class="box" id="control-box">
+		<video id="myVideo"  width="100%" height="100%" class="full-video" autoplay>
+            <source src="http://200004500.vod.myqcloud.com/200004500_44e60aba1da111e689690f47f5e05cec.f30.mp4" type="video/mp4">
+		</video>
+		<div class="control">
+            <span class="process">
+                <!--播放的长度-->
+                <b class="process-play"></b>
+                <!--小圆点点-->
+                <!--<b class="process-seek"></b>-->
+            </span>
+			<a name="pause" class="control-img">
+				<img src="pause.png" alt="" >
+			</a>
+            <div class="time"><span name="time">00:00</span>&nbsp;|&nbsp;<span>00:00</span></div>
+            <a class="control-big">
+                <img src="big.png" alt="" style="width:20px;">
+            </a>
+            <div class="control-volume">
+                <img src="volume.png" alt="">
+                <div class="volume-track">
+                    <!--播放的长度-->
+                    <div class="volume-play"></div>
+                    <!--小圆点点-->
+                    <div class="volume-seek"></div>
+                </div>
+            </div>
+		</div>
+	</div>
+</body>
+<script src="jquery-3.1.1.min.js"></script>
+<script>
+    $(document).ready(function(){
+        var flag=false;
+        var initProgressBar=function () {
+            var video=$('video');
+            var timeDrag=false;
+            video[0].volume=1;  //进入时默认声音为1
+            $('.process').mousedown(function (e) {
+                timeDrag=true;
+                updatebar(e.pageX);
+            });
+            $(document).mouseup(function(e) {
+                if(timeDrag) {
+                    timeDrag = false;
+                    updatebar(e.pageX);
+                }
+            });
+            $(document).mousemove(function(e) {
+                if(timeDrag) {
+                    updatebar(e.pageX);
+                }
+            });
+
+            var updatebar = function(x) {  //更新时间与播放条进度
+                var progress = $(".process");
+                var maxduration = video[0].duration; //Video duraiton返回当前视频的长度
+                var position = x - progress.offset().left;
+                var percentage = 100 * position / progress.width();
+                if(percentage > 100) {
+                    percentage = 100;
+                }
+                if(percentage < 0) {
+                    percentage = 0;
+                }
+
+                $(".process-play").css('width', percentage+'%');
+                video[0].currentTime = maxduration * percentage / 100;
+            };
+
+            $('.control-big>img').bind('click', function() {  //视频全屏
+
+                video[0].webkitEnterFullscreen();
+                video.addClass('full-video');
+                return false;
+
+            });
+        }
+
+        var initTimeLength = function(timeLength){             //根据秒数格式化时间
+            timeLength = parseInt(timeLength);
+            var second = timeLength%60;
+            var minute = (timeLength-second)/60;
+            return (minute<10?"0"+minute:minute)+":"+(second<10?"0"+second:second);
+        }
+
+        var initVideo = function(player){
+            flag = true;
+            $(".control-img>img").on("click",function(){    //暂停   继续
+                var video = $("video");
+
+                if(video[0].paused) {
+                    video[0].play();
+                    $('.control-img>img').attr("src","pause.png")
+                }else {
+                    video[0].pause();
+                    $('.control-img>img').attr("src","play.png")
+                }
+                return false;
+            });
+
+            $("video").on('loadedmetadata', function() {       //获取全部视频长度
+                var video = $("video");
+                $(".time>span:eq(1)").html(initTimeLength(video[0].duration));
+            });
+            $("video").on('timeupdate', function() {           //实时更新播放进度条和时间
+                var video = $("video");
+                var currentPos = video[0].currentTime;    //当前时间
+                var maxduration = video[0].duration;    //总时间
+                var percentage = 100 * currentPos / maxduration; //in %
+                $(".time>span:eq(0)").html(initTimeLength(video[0].currentTime));
+                $(".process>b:eq(0)").css("width",percentage+"%")
+                $(".time>span:eq(1)").html(initTimeLength(video[0].duration));
+                if(currentPos==maxduration){
+                    $(".control_img>img").attr("src","pause.png")
+                }
+            });
+            initProgressBar();
+        }
+        initVideo();
+//    声音
+        var updataVolume=function () {
+            var video=$('video');
+            var timeDrag=false;
+            $('.control-volume>img').click(function () {
+                video[0].muted = !video[0].muted;
+                if(video[0].muted) {
+                    $('.control-volume>img').attr("src","volume1.png");
+                    $('.volume-play').css('width',0);
+                    $('.volume-seek').css('left',0);
+                }else {
+                    $('.control-volume>img').attr("src","volume.png");
+                    $('.volume-play').css('width','100%');
+                    $('.volume-seek').css('left','100%');
+                }
+                return false;
+            })
+
+            $('.volume-track').mousedown(function (e) {
+                timeDrag=true;
+                changeVolume(e.pageX);
+            });
+            $(document).mouseup(function(e) {
+                if(timeDrag) {
+                    timeDrag = false;
+                    changeVolume(e.pageX);
+                }
+            });
+            $(document).mousemove(function(e) {  //鼠标移动事件
+                if(timeDrag) {
+                    changeVolume(e.pageX);
+                }
+            });
+            var changeVolume = function(x) {  //改变声音大小
+                var volumetrack = $(".volume-track");
+                var maxvolume = 1;
+                var position = x - volumetrack.offset().left;
+                var percentage = 10 * position / volumetrack.width();
+                console.log(percentage);
+                if(percentage > 10) {
+                    percentage = 10;
+                }
+                if(percentage < 0) {
+                    percentage = 0;
+                    $('.control-volume>img').attr("src","volume1.png")  //显示静音喇叭
+                }else{
+                    $('.control-volume>img').attr("src","volume.png")
+                }
+
+                $(".volume-play").css('width', percentage*10+'%');
+                $(".volume-seek").css('left', percentage*10+'%');
+
+                video[0].volume = maxvolume * percentage / 10;  //设置声音大小
+            };
+        }
+        updataVolume();
+
+        var controlToggle=function () {
+            //        5秒后控制条消失
+            setTimeout(controlHide,5000);
+            function controlHide () {
+               /* $('.control').animate({
+                    bottom:'-40px'
+                },600)*/
+                $('.control').css('bottom','-40px')
+            }
+            function controlShow() {
+                /*$('.control').animate({
+                    bottom:0
+                },600)*/
+                $('.control').css('bottom',0)
+            }
+            $('#control-box').mouseenter(function () {
+                controlShow();
+            })
+            $('#control-box').mouseleave(function () {
+                controlHide();
+            })
+        }
+
+//            controlToggle();
+
+
+
+    });
+
+</script>
+</html>

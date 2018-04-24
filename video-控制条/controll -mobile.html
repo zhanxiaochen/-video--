@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+	<title></title>
+    <style>
+        body{
+            margin: 0;
+        }
+        .box{
+            width: 100%;
+            height: 22rem;
+            margin: 0;
+            position: relative;
+        }
+        .play-btn{
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .play-btn>img{
+            width: 5rem;
+            height: 5rem;
+        }
+        .control{
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 4rem;
+            z-index: 940;
+            background-color: rgba(25,25,25,0.95);
+            display: flex;
+        }
+        .time{
+            font-size: 1.2rem;
+            line-height: 4rem;
+            padding: 0 1rem;
+            color: #fff;
+            font-size: 1.2rem;
+        }
+        .process{
+            padding-top: 2rem;
+            height: 2px;
+            flex-grow:1;
+        }
+        .process-track{
+            position: relative;
+            height: 2px;
+            background-color: #000;
+        }
+        .progress-play{
+            float:left;
+            width: 0%;
+            background-color: #2E93FA;
+            display: block;
+            height: 100%;
+            border-radius: 2px;
+        }
+        .progress-seek{
+            position: absolute;
+            top: -0.8rem;
+            width: 1.2rem;
+            height: 1.2rem;
+            border-radius: 50%;
+            border: 1px solid #fff;
+            background-color: #fff;
+        }
+        .fullScreen{
+            /*width: 4rem;*/
+            padding-top: 1.1rem;
+            padding-right: 1rem;
+            text-align: center;
+        }
+        .fullScreen>img{
+            width: 1.8rem;
+            height: 1.8rem;
+        }
+        .full-video::-webkit-media-controls-enclosure {
+            display:none !important;
+        }
+    </style>
+</head>
+<body>
+<div class="box" id="control-box">
+    <video id="myVideo"  width="100%" height="100%" >
+        <!--<source src="movie.mp4" type="video/mp4">-->
+        <source src="http://200004500.vod.myqcloud.com/200004500_44e60aba1da111e689690f47f5e05cec.f30.mp4" type="video/mp4">
+    </video>
+    <div name="pause" class="play-btn">
+        <img src="play (1).png" alt="">
+    </div>
+    <div class="control">
+        <div class="time"><span name="time">00:00</span></div>
+        <div class="process">
+            <div class="process-track">
+                    <!--播放的长度-->
+                <div class="progress-play"></div>
+                    <!--小圆点点-->
+                <div class="progress-seek"></div>
+            </div>
+
+        </div>
+        <div class="time"><span>00:00</span></div>
+        <div class="fullScreen">
+            <img src="big.png" alt="" >
+        </div>
+
+    </div>
+</div>
+
+</body>
+<script src="jquery-3.1.1.min.js"></script>
+<script>
+    function qido() {
+        var ss = document.documentElement.clientWidth;
+        var aa = ss / 375;
+        var html = document.getElementsByTagName('html')[0];
+        html.style.fontSize = aa * 10 + 'px';
+    }
+    window.onload = function () {
+        qido();
+    }
+    window.onresize = function () {
+        qido();
+    }
+</script>
+<script>
+    $(document).ready(function(){
+        var flag=false;
+        var initProgressBar=function () {
+            var video=$('video');
+            var timeDrag=false;
+            $('.process-track').on('touchstart',function (e) {
+                timeDrag=true;
+                updatebar(e.originalEvent.changedTouches[0].pageX);
+
+            });
+            $(document).on('touchend',function(e) {
+                if(timeDrag) {
+                    timeDrag = false;
+                    updatebar(e.originalEvent.changedTouches[0].pageX);
+                }
+            });
+            $(document).on('touchmove',function(e) {
+                if(timeDrag) {
+                    updatebar(e.originalEvent.changedTouches[0].pageX);
+
+                }
+            });
+
+            var updatebar = function(x) {  //更新时间与播放条进度
+                var progress = $(".process-track");
+                var maxduration = video[0].duration; //Video duraiton返回当前视频的长度
+                var positionLeft = x - progress.offset().left;
+                var percentage = 100 * positionLeft / progress.width();
+                if(percentage > 100) {
+                    percentage = 100;
+                }
+                if(percentage < 0) {
+                    percentage = 0;
+                }
+
+                $(".progress-play").css('width', percentage+'%');
+                video[0].currentTime = maxduration * percentage / 100;
+            };
+
+            $('.fullScreen>img').bind('click', function() {  //视频全屏
+
+                video[0].webkitEnterFullscreen();
+                video.addClass('full-video');
+                return false;
+
+            });
+        }
+
+        var initTimeLength = function(timeLength){             //根据秒数格式化时间
+            timeLength = parseInt(timeLength);
+            var second = timeLength%60;
+            var minute = (timeLength-second)/60;
+            return (minute<10?"0"+minute:minute)+":"+(second<10?"0"+second:second);
+        }
+
+        var initVideo = function(player){
+            flag = true;
+            $(".play-btn>img").on("click",function(){    //暂停   继续
+                var video = $("video");
+
+                if(video[0].paused) {
+                    video[0].play();
+                    $('.play-btn>img').attr("src","pause.png")
+                }else {
+                    video[0].pause();
+                    $('.play-btn>img').attr("src","play.png")
+                }
+                return false;
+            });
+
+            $("video").on('loadedmetadata', function() {       //获取全部视频长度
+                var video = $("video");
+                $(".time>span:eq(1)").html(initTimeLength(video[0].duration));
+            });
+            $("video").on('timeupdate', function() {           //实时更新播放进度条和时间
+                var video = $("video");
+                var currentPos = video[0].currentTime;    //当前时间
+                var maxduration = video[0].duration;    //总时间
+                var percentage = 100 * currentPos / maxduration; //in %
+                $(".time>span:eq(0)").html(initTimeLength(video[0].currentTime));
+                $(".process>b:eq(0)").css("width",percentage+"%")
+                $(".time>span:eq(1)").html(initTimeLength(video[0].duration));
+                if(currentPos==maxduration){
+                    $(".control_img>img").attr("src","pause.png")
+                }
+            });
+            initProgressBar();
+        }
+        initVideo();
+
+    });
+
+</script>
+</html>
